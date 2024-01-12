@@ -1,94 +1,73 @@
-import { Component } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { nanoid } from 'nanoid';
 import { Container } from './App.styled';
-
 import ContactForm from '../ContactsForm/ContactsForm';
 import ContactList from '../ContactList/ContactList';
 import Filter from '../Filter/Filter';
 import Title from '../Title/Title';
 import Massege from '../Massege/Massege';
 
-class App extends Component {
-  state = {
-    contacts: [],
-    filter: '',
-  };
+const App = () => {
+  const [contacts, setContacts] = useState(
+    () => JSON.parse(window.localStorage.getItem('my-contacts')) ?? []
+  );
+  const [filters, setFilters] = useState('');
+  const firstRender = useRef(true);
 
-  componentDidMount() {
-    const contacts = JSON.parse(localStorage.getItem("my-contacts"));
-    if (contacts?.length) {
-        this.setState({
-          contacts,
-        })
+  useEffect(() => {
+    if (firstRender.current) {
+      firstRender.current = false;
+      return;
     }
-  }
+    window.localStorage.setItem('my-contacts', JSON.stringify(contacts));
+  }, [contacts]);
 
-  componentDidUpdate(prevProps, prevState) {
-    const { contacts } = this.state;
-    if (prevState.contacts.length !== contacts.length) {
-        localStorage.setItem("my-contacts", JSON.stringify(this.state.contacts));
-    }
-  }
-
-  addContact = ({ name, number }) => {
-    const { contacts } = this.state;
-
+  const addContact = ({ name, number }) => {
     const newContact = { id: nanoid(), name, number };
 
     contacts.some(contact => contact.name.toLowerCase() === name.toLowerCase())
       ? alert(`${name} is already in contacts.`)
-      : this.setState(({ contacts }) => ({
-          contacts: [newContact, ...contacts],
-        }));
+      : setContacts(state => [...state, newContact]);
   };
 
-  hendleDeleteContact = contactId => {
-    this.setState(prevState => ({
-      contacts: prevState.contacts.filter(contact => contact.id !== contactId),
-    }));
+  const hendleDeleteContact = contactId => {
+    setContacts(s => s.filter(contact => contact.id !== contactId));
   };
 
-  changeFilter = e => {
-    this.setState({ filter: e.currentTarget.value });
+  const changeFilter = e => {
+    setFilters(e.currentTarget.value);
   };
 
-  getContactOnFilter = () => {
-    const { contacts, filter } = this.state;
+  const getContactOnFilter = () => {
+    if (filters !== '') {
+      const normalizedFilter = filters.toLowerCase();
 
-    const normalizedFilter = filter.toLowerCase();
-
-    return contacts.filter(({ name }) =>
-      name.toLowerCase().includes(normalizedFilter)
-    );
+      return contacts.filter(({ name }) =>
+        name.toLowerCase().includes(normalizedFilter)
+      );
+    }
+    return contacts;
   };
+  const contactsProcessedFilters = getContactOnFilter();
 
-  render() {
-    const contactList = this.getContactOnFilter();
-    const Length = contactList.length;
-    const hendleDeleteContact = this.hendleDeleteContact;
-    const filter = this.state.filter;
-    const changeFilter = this.changeFilter;
-    const contact = this.addContact;
-
-    return (
-      <Container>
-        <Title title="Phonebook"></Title>
-        <ContactForm onSubmit={contact}></ContactForm>
-        <div>
-          <Title title="Contacts"></Title>
-          <Filter value={filter} onChange={changeFilter}></Filter>
-          {Length > 0 ? (
-            <ContactList
-              contactList={contactList}
-              hendleDeleteContact={hendleDeleteContact}
-            ></ContactList>
-          ) : (
-            <Massege info=""></Massege>
-          )}
-        </div>
-      </Container>
-    );
-  }
-}
+  return (
+    <Container>
+      <Title title='Phonebook'></Title>
+      <ContactForm onSubmit={addContact}></ContactForm>
+      <div>
+        <Title title='Contacts'></Title>
+        <Filter value={filters} changeFilte={changeFilter}></Filter>
+        {contactsProcessedFilters ? (
+          <ContactList
+            contactList={getContactOnFilter()}
+            hendleDeleteContact={hendleDeleteContact}
+          ></ContactList>
+        ) : (
+          <Massege info='No contacts to display'></Massege>
+        )}
+      </div>
+    </Container>
+  );
+};
 
 export default App;
