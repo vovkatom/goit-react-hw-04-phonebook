@@ -21,7 +21,7 @@ const ContactList = ({ contactList, hendleDeleteContact }) => {
           <ContactNumber>{number}</ContactNumber>
           <>
             <Btn
-              type="button"
+              type='button'
               onClick={() => {
                 hendleDeleteContact(id);
               }}
